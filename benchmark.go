@@ -17,11 +17,30 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/frontend/cs/scs"
 	"github.com/consensys/gnark/profile"
-	"github.com/succinctlabs/gnark-plonky2-verifier/trusted_setup"
 	"github.com/succinctlabs/gnark-plonky2-verifier/types"
 	"github.com/succinctlabs/gnark-plonky2-verifier/variables"
 	"github.com/succinctlabs/gnark-plonky2-verifier/verifier"
 )
+
+func main() {
+	plonky2Circuit := flag.String("plonky2-circuit", "zklighter", "plonky2 circuit to benchmark")
+	proofSystem := flag.String("proof-system", "plonk", "proof system to benchmark")
+	profileCircuit := flag.Bool("profile", true, "profile the circuit")
+	dummySetup := flag.Bool("dummy", false, "use dummy setup")
+	saveArtifacts := flag.Bool("save", true, "save circuit artifacts")
+
+	flag.Parse()
+
+	if plonky2Circuit == nil || *plonky2Circuit == "" {
+		fmt.Println("Please provide a plonky2 circuit to benchmark")
+		os.Exit(1)
+	}
+
+	fmt.Printf("Running benchmark for %s circuit with proof system %s\n", *plonky2Circuit, *proofSystem)
+	fmt.Printf("Profiling: %t, DummySetup: %t, SaveArtifacts: %t\n", *profileCircuit, *dummySetup, *saveArtifacts)
+
+	runBenchmark(*plonky2Circuit, *proofSystem, *profileCircuit, *dummySetup, *saveArtifacts)
+}
 
 func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool, dummy bool, saveArtifacts bool) {
 	commonCircuitData := types.ReadCommonCircuitData("testdata/" + plonky2Circuit + "/common_circuit_data.json")
@@ -77,38 +96,32 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 }
 
 func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifacts bool) {
-	var pk plonk.ProvingKey
-	var vk plonk.VerifyingKey
-	var srs kzg.SRS = kzg.NewSRS(ecc.BN254)
-	var err error
+	// performSetup(r1cs)
 
 	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json"))
-	assignment := verifier.ExampleVerifierCircuit{
+	readKeysAndProve(r1cs, verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
 		PublicInputs:            proofWithPis.PublicInputs,
-		VerifierOnlyCircuitData: verifierOnlyCircuitData,
-	}
+		VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json")),
+	})
+}
 
-	fmt.Println("Using real setup")
-	fileName := "srs_setup"
-	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		trusted_setup.DownloadAndSaveAztecIgnitionSrs(174, fileName)
-	}
-
+func performSetup(r1cs constraint.ConstraintSystem) {
 	fmt.Println("Reading the real setup")
-	fSRS, err := os.Open(fileName)
+	fSRS, err := os.Open("srs_setup")
 	if err != nil {
 		panic(err)
 	}
-
+	var srs kzg.SRS = kzg.NewSRS(ecc.BN254)
 	_, err = srs.ReadFrom(fSRS)
 	fSRS.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Calling pk, vk, err = plonk.Setup(r1cs, srs) ")
+	fmt.Println("Generating pk, vk from the setup")
+	var vk plonk.VerifyingKey
+	var pk plonk.ProvingKey
 	pk, vk, err = plonk.Setup(r1cs, srs)
 	if err != nil {
 		fmt.Println(err)
@@ -116,60 +129,69 @@ func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifa
 	}
 
 	fmt.Println("Saving pk, vk, and proof.sol")
-	if saveArtifacts {
-		fPK, _ := os.Create("proving.key")
-		pk.WriteTo(fPK)
-		fPK.Close()
+	fPK, _ := os.Create("proving.key")
+	pk.WriteTo(fPK)
+	fPK.Close()
+	if vk != nil {
+		fVK, _ := os.Create("verifying.key")
+		vk.WriteTo(fVK)
+		fVK.Close()
+	}
+	fSolidity, _ := os.Create("verifier.sol")
+	err = vk.ExportSolidity(fSolidity)
+	if err != nil {
+		panic(err)
+	}
+}
 
-		if vk != nil {
-			fVK, _ := os.Create("verifying.key")
-			vk.WriteTo(fVK)
-			fVK.Close()
-		}
-
-		fSolidity, _ := os.Create("proof.sol")
-		err = vk.ExportSolidity(fSolidity)
+func readKeysAndProve(r1cs constraint.ConstraintSystem, assignment verifier.ExampleVerifierCircuit) {
+	var pk plonk.ProvingKey
+	if _, err := os.Stat("proving.key"); err == nil {
+		fPK, err := os.Open("proving.key")
 		if err != nil {
 			panic(err)
 		}
+		pk.ReadFrom(fPK)
+		fPK.Close()
+	} else {
+		fmt.Println("proving.key does not exist")
+		os.Exit(1)
+	}
+
+	var vk plonk.VerifyingKey
+	if _, err := os.Stat("verifying.key"); err == nil {
+		fVK, err := os.Open("verifying.key")
+		if err != nil {
+			panic(err)
+		}
+		vk.ReadFrom(fVK)
+		fVK.Close()
+	} else {
+		fmt.Println("verifying.key does not exist")
+		os.Exit(1)
 	}
 
 	fmt.Println("Generating witness", time.Now())
 	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
 	publicWitness, _ := witness.Public()
-	if saveArtifacts {
-		fWitness, _ := os.Create("witness")
-		witness.WriteTo(fWitness)
-		fWitness.Close()
-	}
 
 	fmt.Println("Creating proof", time.Now())
 	proof, err := plonk.Prove(r1cs, pk, witness)
-	fmt.Println("A")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-	}
-	fmt.Println("B")
-	if saveArtifacts {
-		fmt.Println("C")
-		fProof, _ := os.Create("proof.proof")
-		proof.WriteTo(fProof)
-		fProof.Close()
-	}
-	fmt.Println("D")
-
-	if vk == nil {
-		fmt.Println("vk is nil, means you're using dummy setup and we skip verification of proof")
-		return
 	}
 
 	fmt.Println("Verifying proof", time.Now())
-	err = plonk.Verify(proof, vk, publicWitness)
-	if err != nil {
+	if err = plonk.Verify(proof, vk, publicWitness); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	fmt.Println("Saving proof.proof")
+	fProof, _ := os.Create("proof.proof")
+	proof.WriteTo(fProof)
+	fProof.Close()
 
 	const fpSize = 4 * 8
 	var buf bytes.Buffer
@@ -283,25 +305,4 @@ func groth16Proof(r1cs constraint.ConstraintSystem, circuitName string, dummy bo
 
 	println("c[0] is ", c[0].String())
 	println("c[1] is ", c[1].String())
-
-}
-
-func main() {
-	plonky2Circuit := flag.String("plonky2-circuit", "zklighter", "plonky2 circuit to benchmark")
-	proofSystem := flag.String("proof-system", "plonk", "proof system to benchmark")
-	profileCircuit := flag.Bool("profile", true, "profile the circuit")
-	dummySetup := flag.Bool("dummy", false, "use dummy setup")
-	saveArtifacts := flag.Bool("save", true, "save circuit artifacts")
-
-	flag.Parse()
-
-	if plonky2Circuit == nil || *plonky2Circuit == "" {
-		fmt.Println("Please provide a plonky2 circuit to benchmark")
-		os.Exit(1)
-	}
-
-	fmt.Printf("Running benchmark for %s circuit with proof system %s\n", *plonky2Circuit, *proofSystem)
-	fmt.Printf("Profiling: %t, DummySetup: %t, SaveArtifacts: %t\n", *profileCircuit, *dummySetup, *saveArtifacts)
-
-	runBenchmark(*plonky2Circuit, *proofSystem, *profileCircuit, *dummySetup, *saveArtifacts)
 }
