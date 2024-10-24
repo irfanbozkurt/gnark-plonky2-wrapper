@@ -96,17 +96,17 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 }
 
 func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifacts bool) {
-	performSetup(r1cs)
+	pk, vk := performSetup(r1cs)
 
 	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
 	readKeysAndProve(r1cs, verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
 		PublicInputs:            proofWithPis.PublicInputs,
 		VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json")),
-	})
+	}, pk, vk)
 }
 
-func performSetup(r1cs constraint.ConstraintSystem) {
+func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.VerifyingKey) {
 	fmt.Println("Reading the real setup")
 	fSRS, err := os.Open("srs_setup")
 	if err != nil {
@@ -142,6 +142,8 @@ func performSetup(r1cs constraint.ConstraintSystem) {
 	if err != nil {
 		panic(err)
 	}
+
+	return pk, vk
 }
 
 func readKeysAndProve(
