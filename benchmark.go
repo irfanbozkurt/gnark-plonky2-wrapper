@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"math/big"
@@ -23,6 +22,13 @@ import (
 	"github.com/succinctlabs/gnark-plonky2-verifier/variables"
 	"github.com/succinctlabs/gnark-plonky2-verifier/verifier"
 )
+
+const PkFileName = "proving.key"
+const VkFileName = "verifying.key"
+const VerifierContractFileName = "PlonkVerifier.sol"
+const ProofFileName = "proof"
+const PublicWitnessFileName = "public_witness"
+const fpSize = 4 * 8
 
 func main() {
 	plonky2Circuit := flag.String("plonky2-circuit", "zklighter", "plonky2 circuit to benchmark")
@@ -130,16 +136,16 @@ func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.Ver
 		os.Exit(1)
 	}
 
-	fmt.Println("Saving pk, vk, and proof.sol")
-	fPK, _ := os.Create("proving.key")
+	fmt.Println("Saving pk, vk, and verifier contract")
+	fPK, _ := os.Create(PkFileName)
 	pk.WriteTo(fPK)
 	fPK.Close()
 	if vk != nil {
-		fVK, _ := os.Create("verifying.key")
+		fVK, _ := os.Create(VkFileName)
 		vk.WriteTo(fVK)
 		fVK.Close()
 	}
-	fSolidity, _ := os.Create("verifier.sol")
+	fSolidity, _ := os.Create(VerifierContractFileName)
 	err = vk.ExportSolidity(fSolidity)
 	if err != nil {
 		panic(err)
@@ -153,8 +159,8 @@ func readKeysAndProve(
 	assignment verifier.ExampleVerifierCircuit,
 ) {
 	var pk plonk.ProvingKey = plonk.NewProvingKey(ecc.BN254)
-	if _, err := os.Stat("proving.key"); err == nil {
-		fPK, err := os.Open("proving.key")
+	if _, err := os.Stat(PkFileName); err == nil {
+		fPK, err := os.Open(PkFileName)
 		if err != nil {
 			panic(err)
 		}
@@ -168,8 +174,8 @@ func readKeysAndProve(
 	}
 
 	var vk plonk.VerifyingKey = plonk.NewVerifyingKey(ecc.BN254)
-	if _, err := os.Stat("verifying.key"); err == nil {
-		fVK, err := os.Open("verifying.key")
+	if _, err := os.Stat(VkFileName); err == nil {
+		fVK, err := os.Open(VkFileName)
 		if err != nil {
 			panic(err)
 		}
@@ -201,12 +207,12 @@ func readKeysAndProve(
 
 	fmt.Println("Saving proof for Solidity")
 	fProof, _ := os.Create("proof")
-	if _, err = fProof.WriteString(hex.EncodeToString(proof.(*plonk_bn254.Proof).MarshalSolidity())); err != nil {
+	if _, err = fProof.Write(proof.(*plonk_bn254.Proof).MarshalSolidity()); err != nil {
 		panic(err)
 	}
 	fProof.Close()
 
-	fmt.Println("Saving public_witness for Solidity", time.Now())
+	fmt.Println("Saving public_witness for Solidity")
 	bPublicWitness, err := publicWitness.MarshalBinary()
 	if err != nil {
 		fmt.Println(err)
@@ -216,9 +222,8 @@ func readKeysAndProve(
 	// first 4 bytes -> nbPublic
 	// next 4 bytes -> nbSecret
 	// next 4 bytes -> nb elements in the vector (== nbPublic + nbSecret)
-	publicWitnessStr := hex.EncodeToString(bPublicWitness[12:])
 	fPublicWitness, _ := os.Create("public_witness")
-	if _, err = fPublicWitness.WriteString(publicWitnessStr); err != nil {
+	if _, err = fPublicWitness.Write(bPublicWitness[12:]); err != nil {
 		panic(err)
 	}
 	fPublicWitness.Close()
@@ -251,17 +256,17 @@ func groth16Proof(r1cs constraint.ConstraintSystem, circuitName string, dummy bo
 	}
 
 	if saveArtifacts {
-		fPK, _ := os.Create("proving.key")
+		fPK, _ := os.Create(PkFileName)
 		pk.WriteTo(fPK)
 		fPK.Close()
 
 		if vk != nil {
-			fVK, _ := os.Create("verifying.key")
+			fVK, _ := os.Create(VkFileName)
 			vk.WriteTo(fVK)
 			fVK.Close()
 		}
 
-		fSolidity, _ := os.Create("proof.sol")
+		fSolidity, _ := os.Create(VerifierContractFileName)
 		err = vk.ExportSolidity(fSolidity)
 	}
 
@@ -281,7 +286,7 @@ func groth16Proof(r1cs constraint.ConstraintSystem, circuitName string, dummy bo
 		os.Exit(1)
 	}
 	if saveArtifacts {
-		fProof, _ := os.Create("proof.proof")
+		fProof, _ := os.Create(ProofFileName)
 		proof.WriteTo(fProof)
 		fProof.Close()
 	}
