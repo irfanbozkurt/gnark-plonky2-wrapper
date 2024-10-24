@@ -150,7 +150,7 @@ func readKeysAndProve(
 	r1cs constraint.ConstraintSystem,
 	assignment verifier.ExampleVerifierCircuit,
 ) {
-	var pk plonk.ProvingKey = *new(plonk.ProvingKey)
+	var pk plonk.ProvingKey = plonk.NewProvingKey(ecc.BN254)
 	if _, err := os.Stat("proving.key"); err == nil {
 		fPK, err := os.Open("proving.key")
 		if err != nil {
@@ -165,7 +165,7 @@ func readKeysAndProve(
 		os.Exit(1)
 	}
 
-	var vk plonk.VerifyingKey = *new(plonk.VerifyingKey)
+	var vk plonk.VerifyingKey = plonk.NewVerifyingKey(ecc.BN254)
 	if _, err := os.Stat("verifying.key"); err == nil {
 		fVK, err := os.Open("verifying.key")
 		if err != nil {
