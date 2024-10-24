@@ -34,27 +34,17 @@ func main() {
 	plonky2Circuit := flag.String("plonky2-circuit", "zklighter", "plonky2 circuit to benchmark")
 	proofSystem := flag.String("proof-system", "plonk", "proof system to benchmark")
 	profileCircuit := flag.Bool("profile", true, "profile the circuit")
-	dummySetup := flag.Bool("dummy", false, "use dummy setup")
 	saveArtifacts := flag.Bool("save", true, "save circuit artifacts")
 
 	flag.Parse()
 
-	if plonky2Circuit == nil || *plonky2Circuit == "" {
-		fmt.Println("Please provide a plonky2 circuit to benchmark")
-		os.Exit(1)
-	}
-
 	fmt.Printf("Running benchmark for %s circuit with proof system %s\n", *plonky2Circuit, *proofSystem)
-	fmt.Printf("Profiling: %t, DummySetup: %t, SaveArtifacts: %t\n", *profileCircuit, *dummySetup, *saveArtifacts)
+	fmt.Printf("Profiling: %t, DummySetup: %t, SaveArtifacts: %t\n", *profileCircuit, *saveArtifacts)
 
-	runBenchmark(*plonky2Circuit, *proofSystem, *profileCircuit, *dummySetup, *saveArtifacts)
-}
+	commonCircuitData := types.ReadCommonCircuitData("testdata/" + *plonky2Circuit + "/common_circuit_data.json")
 
-func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool, dummy bool, saveArtifacts bool) {
-	commonCircuitData := types.ReadCommonCircuitData("testdata/" + plonky2Circuit + "/common_circuit_data.json")
-
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + plonky2Circuit + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + plonky2Circuit + "/verifier_only_circuit_data.json"))
+	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
+	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + *plonky2Circuit + "/verifier_only_circuit_data.json"))
 
 	circuit := verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
@@ -64,14 +54,14 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 	}
 
 	var p *profile.Profile
-	if profileCircuit {
+	if *profileCircuit {
 		p = profile.Start()
 	}
 
 	var builder frontend.NewBuilder
-	if proofSystem == "plonk" {
+	if *proofSystem == "plonk" {
 		builder = scs.NewBuilder
-	} else if proofSystem == "groth16" {
+	} else if *proofSystem == "groth16" {
 		builder = r1cs.NewBuilder
 	} else {
 		fmt.Println("Please provide a valid proof system to benchmark, we only support plonk and groth16")
@@ -84,7 +74,7 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 		os.Exit(1)
 	}
 
-	if profileCircuit {
+	if *profileCircuit {
 		p.Stop()
 		p.Top()
 		println("r1cs.GetNbCoefficients(): ", r1cs.GetNbCoefficients())
@@ -94,28 +84,24 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 		println("r1cs.GetNbInternalVariables(): ", r1cs.GetNbInternalVariables())
 	}
 
-	if proofSystem == "plonk" {
-		plonkProof(r1cs, plonky2Circuit, saveArtifacts)
-	} else if proofSystem == "groth16" {
-		groth16Proof(r1cs, plonky2Circuit, dummy, saveArtifacts)
+	if *proofSystem == "plonk" {
+		// pk, vk := performSetupForPlonk(r1cs)
+		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
+		readKeysFromFileAndProve(r1cs, verifier.ExampleVerifierCircuit{
+			Proof:                   proofWithPis.Proof,
+			PublicInputs:            proofWithPis.PublicInputs,
+			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + *plonky2Circuit + "/verifier_only_circuit_data.json")),
+		})
+	} else if *proofSystem == "groth16" {
+		groth16Proof(r1cs, *plonky2Circuit, false, *saveArtifacts)
 	} else {
 		panic("Please provide a valid proof system to benchmark, we only support plonk and groth16")
 	}
 }
 
-func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifacts bool) {
-	// pk, vk := performSetup(r1cs)
-
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
-	readKeysAndProve(r1cs, verifier.ExampleVerifierCircuit{
-		Proof:                   proofWithPis.Proof,
-		PublicInputs:            proofWithPis.PublicInputs,
-		VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json")),
-	})
-}
-
-func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.VerifyingKey) {
+func performSetupForPlonk(r1cs constraint.ConstraintSystem) {
 	fmt.Println("Reading the real setup")
+
 	fSRS, err := os.Open("srs_setup")
 	if err != nil {
 		panic(err)
@@ -128,6 +114,7 @@ func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.Ver
 	}
 
 	fmt.Println("Generating pk, vk from the setup")
+
 	var vk plonk.VerifyingKey
 	var pk plonk.ProvingKey
 	pk, vk, err = plonk.Setup(r1cs, srs)
@@ -137,27 +124,22 @@ func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.Ver
 	}
 
 	fmt.Println("Saving pk, vk, and verifier contract")
+
 	fPK, _ := os.Create(PkFileName)
 	pk.WriteTo(fPK)
 	fPK.Close()
-	if vk != nil {
-		fVK, _ := os.Create(VkFileName)
-		vk.WriteTo(fVK)
-		fVK.Close()
-	}
+
+	fVK, _ := os.Create(VkFileName)
+	vk.WriteTo(fVK)
+	fVK.Close()
+
 	fSolidity, _ := os.Create(VerifierContractFileName)
-	err = vk.ExportSolidity(fSolidity)
-	if err != nil {
+	if err = vk.ExportSolidity(fSolidity); err != nil {
 		panic(err)
 	}
-
-	return pk, vk
 }
 
-func readKeysAndProve(
-	r1cs constraint.ConstraintSystem,
-	assignment verifier.ExampleVerifierCircuit,
-) {
+func readKeysFromFileAndProve(r1cs constraint.ConstraintSystem, assignment verifier.ExampleVerifierCircuit) {
 	var pk plonk.ProvingKey = plonk.NewProvingKey(ecc.BN254)
 	if _, err := os.Stat(PkFileName); err == nil {
 		fPK, err := os.Open(PkFileName)
@@ -190,7 +172,6 @@ func readKeysAndProve(
 
 	fmt.Println("Generating witness", time.Now())
 	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
-	publicWitness, _ := witness.Public()
 
 	fmt.Println("Creating proof", time.Now())
 	proof, err := plonk.Prove(r1cs, pk, witness)
@@ -199,20 +180,21 @@ func readKeysAndProve(
 		os.Exit(1)
 	}
 
-	fmt.Println("Verifying proof", time.Now())
+	fmt.Println("Verifying proof for sanity check", time.Now())
+	publicWitness, _ := witness.Public()
 	if err = plonk.Verify(proof, vk, publicWitness); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Saving proof for Solidity")
+	fmt.Println("Saving proof for Solidity to a file called `proof`", time.Now())
 	fProof, _ := os.Create("proof")
 	if _, err = fProof.Write(proof.(*plonk_bn254.Proof).MarshalSolidity()); err != nil {
 		panic(err)
 	}
 	fProof.Close()
 
-	fmt.Println("Saving public_witness for Solidity")
+	fmt.Println("Saving public witness for Solidity to a file called `public_witness`", time.Now())
 	bPublicWitness, err := publicWitness.MarshalBinary()
 	if err != nil {
 		fmt.Println(err)
