@@ -86,12 +86,14 @@ func main() {
 
 	if *proofSystem == "plonk" {
 		// pk, vk := performSetupForPlonk(r1cs)
+
 		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
-		readKeysFromFileAndProve(r1cs, verifier.ExampleVerifierCircuit{
+		assignment := verifier.ExampleVerifierCircuit{
 			Proof:                   proofWithPis.Proof,
 			PublicInputs:            proofWithPis.PublicInputs,
 			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + *plonky2Circuit + "/verifier_only_circuit_data.json")),
-		})
+		}
+		readKeysFromFileAndProve(r1cs, assignment)
 	} else if *proofSystem == "groth16" {
 		groth16Proof(r1cs, *plonky2Circuit, false, *saveArtifacts)
 	} else {
