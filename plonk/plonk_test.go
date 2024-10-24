@@ -39,9 +39,9 @@ func (circuit *TestPlonkCircuit) Define(api frontend.API) error {
 func TestPlonkDecodeBlock(t *testing.T) {
 	assert := test.NewAssert(t)
 
-	proofWithPIsFilename := "../testdata/decode_block/proof_with_public_inputs.json"
-	commonCircuitDataFilename := "../testdata/decode_block/common_circuit_data.json"
-	verifierOnlyCircuitDataFilename := "../testdata/decode_block/verifier_only_circuit_data.json"
+	proofWithPIsFilename := "../data/decode_block/proof_with_public_inputs.json"
+	commonCircuitDataFilename := "../data/decode_block/common_circuit_data.json"
+	verifierOnlyCircuitDataFilename := "../data/decode_block/verifier_only_circuit_data.json"
 
 	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs(proofWithPIsFilename))
 	commonCircuitData := types.ReadCommonCircuitData(commonCircuitDataFilename)

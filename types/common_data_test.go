@@ -5,5 +5,5 @@ import (
 )
 
 func TestReadCommonCircuitData(t *testing.T) {
-	ReadCommonCircuitData("../testdata/decode_block/common_circuit_data.json")
+	ReadCommonCircuitData("../data/decode_block/common_circuit_data.json")
 }

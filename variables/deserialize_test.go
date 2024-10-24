@@ -7,11 +7,11 @@ import (
 )
 
 func TestDeserializeProofWithPublicInputs(t *testing.T) {
-	proofWithPis := DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("../testdata/decode_block/proof_with_public_inputs.json"))
+	proofWithPis := DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("../data/decode_block/proof_with_public_inputs.json"))
 	t.Logf("%+v\n", proofWithPis)
 }
 
 func TestDeserializeVerifierOnlyCircuitData(t *testing.T) {
-	verifierOnlyCircuitData := DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("../testdata/decode_block/verifier_only_circuit_data.json"))
+	verifierOnlyCircuitData := DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("../data/decode_block/verifier_only_circuit_data.json"))
 	t.Logf("%+v\n", verifierOnlyCircuitData)
 }

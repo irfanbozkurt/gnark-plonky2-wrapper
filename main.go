@@ -41,10 +41,10 @@ func main() {
 	fmt.Printf("Running benchmark for %s circuit with proof system %s\n", *plonky2Circuit, *proofSystem)
 	fmt.Printf("Profiling: %t, DummySetup: %t, SaveArtifacts: %t\n", *profileCircuit, *saveArtifacts)
 
-	commonCircuitData := types.ReadCommonCircuitData("testdata/" + *plonky2Circuit + "/common_circuit_data.json")
+	commonCircuitData := types.ReadCommonCircuitData("data/" + *plonky2Circuit + "/common_circuit_data.json")
 
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + *plonky2Circuit + "/verifier_only_circuit_data.json"))
+	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("data/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
+	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("data/" + *plonky2Circuit + "/verifier_only_circuit_data.json"))
 
 	circuit := verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
@@ -87,11 +87,11 @@ func main() {
 	if *proofSystem == "plonk" {
 		// pk, vk := performSetupForPlonk(r1cs)
 
-		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
+		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("data/" + *plonky2Circuit + "/proof_with_public_inputs.json"))
 		assignment := verifier.ExampleVerifierCircuit{
 			Proof:                   proofWithPis.Proof,
 			PublicInputs:            proofWithPis.PublicInputs,
-			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + *plonky2Circuit + "/verifier_only_circuit_data.json")),
+			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("data/" + *plonky2Circuit + "/verifier_only_circuit_data.json")),
 		}
 		readKeysFromFileAndProve(r1cs, assignment)
 	} else if *proofSystem == "groth16" {
@@ -218,8 +218,8 @@ func groth16Proof(r1cs constraint.ConstraintSystem, circuitName string, dummy bo
 	var vk groth16.VerifyingKey
 	var err error
 
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json"))
+	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("data/" + circuitName + "/proof_with_public_inputs.json"))
+	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("data/" + circuitName + "/verifier_only_circuit_data.json"))
 	assignment := verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
 		PublicInputs:            proofWithPis.PublicInputs,
