@@ -144,15 +144,23 @@ func performSetup(r1cs constraint.ConstraintSystem) {
 	}
 }
 
-func readKeysAndProve(r1cs constraint.ConstraintSystem, assignment verifier.ExampleVerifierCircuit) {
+func readKeysAndProve(
+	r1cs constraint.ConstraintSystem,
+	assignment verifier.ExampleVerifierCircuit,
+	provingKey plonk.ProvingKey,
+	verifyingKey plonk.VerifyingKey,
+) {
 	var pk plonk.ProvingKey
 	if _, err := os.Stat("proving.key"); err == nil {
 		fPK, err := os.Open("proving.key")
 		if err != nil {
 			panic(err)
 		}
-		pk.ReadFrom(fPK)
-		fPK.Close()
+		defer fPK.Close()
+		if _, err := pk.ReadFrom(fPK); err != nil {
+			fmt.Println("Failed to read pk from file", err)
+			pk = provingKey
+		}
 	} else {
 		fmt.Println("proving.key does not exist")
 		os.Exit(1)
@@ -164,8 +172,11 @@ func readKeysAndProve(r1cs constraint.ConstraintSystem, assignment verifier.Exam
 		if err != nil {
 			panic(err)
 		}
-		vk.ReadFrom(fVK)
-		fVK.Close()
+		defer fVK.Close()
+		if _, err := vk.ReadFrom(fVK); err != nil {
+			fmt.Println("Failed to read vk from file", err)
+			vk = verifyingKey
+		}
 	} else {
 		fmt.Println("verifying.key does not exist")
 		os.Exit(1)
@@ -197,7 +208,6 @@ func readKeysAndProve(r1cs constraint.ConstraintSystem, assignment verifier.Exam
 	proof.WriteTo(fProof)
 	fProof.Close()
 
-	const fpSize = 4 * 8
 	var buf bytes.Buffer
 	proof.WriteRawTo(&buf)
 	proofBytes := buf.Bytes()
