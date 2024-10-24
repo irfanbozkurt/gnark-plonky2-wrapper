@@ -17,6 +17,7 @@
 gnark-ed25519
 gnark.pprof
 public_witness
+proof
 
 # Output from pprof visualization
 verifier.png
