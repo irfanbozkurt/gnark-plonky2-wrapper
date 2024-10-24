@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"math/big"
@@ -12,6 +13,7 @@ import (
 	"github.com/consensys/gnark-crypto/kzg"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
+	plonk_bn254 "github.com/consensys/gnark/backend/plonk/bn254"
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -184,10 +186,6 @@ func readKeysAndProve(
 	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
 	publicWitness, _ := witness.Public()
 
-	fmt.Println("Saving public witness", time.Now())
-	fPublicWitness, _ := os.Create("public_witness")
-	publicWitness.WriteTo(fPublicWitness)
-
 	fmt.Println("Creating proof", time.Now())
 	proof, err := plonk.Prove(r1cs, pk, witness)
 	if err != nil {
@@ -201,15 +199,29 @@ func readKeysAndProve(
 		os.Exit(1)
 	}
 
-	fmt.Println("Saving proof.proof")
-	fProof, _ := os.Create("proof.proof")
-	proof.WriteTo(fProof)
+	fmt.Println("Saving proof for Solidity")
+	fProof, _ := os.Create("proof")
+	if _, err = fProof.WriteString(hex.EncodeToString(proof.(*plonk_bn254.Proof).MarshalSolidity())); err != nil {
+		panic(err)
+	}
 	fProof.Close()
 
-	var buf bytes.Buffer
-	proof.WriteRawTo(&buf)
-	proofBytes := buf.Bytes()
-	fmt.Printf("proofBytes: %v\n", proofBytes)
+	fmt.Println("Saving public_witness for Solidity", time.Now())
+	bPublicWitness, err := publicWitness.MarshalBinary()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	// that's quite dirty...
+	// first 4 bytes -> nbPublic
+	// next 4 bytes -> nbSecret
+	// next 4 bytes -> nb elements in the vector (== nbPublic + nbSecret)
+	publicWitnessStr := hex.EncodeToString(bPublicWitness[12:])
+	fPublicWitness, _ := os.Create("public_witness")
+	if _, err = fPublicWitness.WriteString(publicWitnessStr); err != nil {
+		panic(err)
+	}
+	fPublicWitness.Close()
 }
 
 func groth16Proof(r1cs constraint.ConstraintSystem, circuitName string, dummy bool, saveArtifacts bool) {
