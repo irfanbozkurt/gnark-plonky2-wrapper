@@ -175,6 +175,10 @@ func readKeysAndProve(r1cs constraint.ConstraintSystem, assignment verifier.Exam
 	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
 	publicWitness, _ := witness.Public()
 
+	fmt.Println("Saving public witness", time.Now())
+	fPublicWitness, _ := os.Create("public_witness")
+	publicWitness.WriteTo(fPublicWitness)
+
 	fmt.Println("Creating proof", time.Now())
 	proof, err := plonk.Prove(r1cs, pk, witness)
 	if err != nil {
