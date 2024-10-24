@@ -96,14 +96,14 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 }
 
 func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifacts bool) {
-	pk, vk := performSetup(r1cs)
+	// pk, vk := performSetup(r1cs)
 
 	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
 	readKeysAndProve(r1cs, verifier.ExampleVerifierCircuit{
 		Proof:                   proofWithPis.Proof,
 		PublicInputs:            proofWithPis.PublicInputs,
 		VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("testdata/" + circuitName + "/verifier_only_circuit_data.json")),
-	}, pk, vk)
+	})
 }
 
 func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.VerifyingKey) {
@@ -149,10 +149,8 @@ func performSetup(r1cs constraint.ConstraintSystem) (plonk.ProvingKey, plonk.Ver
 func readKeysAndProve(
 	r1cs constraint.ConstraintSystem,
 	assignment verifier.ExampleVerifierCircuit,
-	provingKey plonk.ProvingKey,
-	verifyingKey plonk.VerifyingKey,
 ) {
-	var pk plonk.ProvingKey
+	var pk plonk.ProvingKey = *new(plonk.ProvingKey)
 	if _, err := os.Stat("proving.key"); err == nil {
 		fPK, err := os.Open("proving.key")
 		if err != nil {
@@ -161,14 +159,13 @@ func readKeysAndProve(
 		defer fPK.Close()
 		if _, err := pk.ReadFrom(fPK); err != nil {
 			fmt.Println("Failed to read pk from file", err)
-			pk = provingKey
 		}
 	} else {
 		fmt.Println("proving.key does not exist")
 		os.Exit(1)
 	}
 
-	var vk plonk.VerifyingKey
+	var vk plonk.VerifyingKey = *new(plonk.VerifyingKey)
 	if _, err := os.Stat("verifying.key"); err == nil {
 		fVK, err := os.Open("verifying.key")
 		if err != nil {
@@ -177,7 +174,6 @@ func readKeysAndProve(
 		defer fVK.Close()
 		if _, err := vk.ReadFrom(fVK); err != nil {
 			fmt.Println("Failed to read vk from file", err)
-			vk = verifyingKey
 		}
 	} else {
 		fmt.Println("verifying.key does not exist")
