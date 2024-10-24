@@ -96,7 +96,7 @@ func runBenchmark(plonky2Circuit string, proofSystem string, profileCircuit bool
 }
 
 func plonkProof(r1cs constraint.ConstraintSystem, circuitName string, saveArtifacts bool) {
-	// performSetup(r1cs)
+	performSetup(r1cs)
 
 	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("testdata/" + circuitName + "/proof_with_public_inputs.json"))
 	readKeysAndProve(r1cs, verifier.ExampleVerifierCircuit{
