@@ -86,7 +86,7 @@ func main() {
 	}
 
 	if *proofSystem == "plonk" {
-		performSetupForPlonk(r1cs)
+		// performSetupForPlonk(r1cs)
 
 		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("../gnark-plonky2-verifier-input" + "/proof_with_public_inputs.json"))
 		assignment := verifier.VerifierCircuit{
