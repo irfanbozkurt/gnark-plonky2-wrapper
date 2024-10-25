@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/Users/irfanbozkurt/lighter/recursion/proof_wrapper/solidity-plonk-verifier/contracts/PlonkVerifier.sol": {
-      "lastModificationDate": 1729849911577,
-      "contentHash": "3c2e7132d346c326eafd3e14d057bf52",
+    "/Users/irfanbozkurt/lighter/recursion/proof-wrapper/solidity-plonk-verifier/contracts/PlonkVerifier.sol": {
+      "lastModificationDate": 1729856613436,
+      "contentHash": "c0399e464c6eb7cf2978ff861d357d5a",
       "sourceName": "contracts/PlonkVerifier.sol",
       "solcConfig": {
         "version": "0.8.19",

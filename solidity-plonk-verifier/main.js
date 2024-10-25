@@ -3,9 +3,9 @@ const path = require('path');
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-const INPUTS_FILE_NAME = "input";
-const PUBLIC_INPUT_PATH = path.join(__dirname, INPUTS_FILE_NAME, 'public_witness');
-const PROOF_PATH = path.join(__dirname, INPUTS_FILE_NAME, 'proof');
+const INPUTS_FILE_NAME = "solidity-plonk-verifier-input";
+const PUBLIC_INPUT_PATH = path.join(__dirname, "..", INPUTS_FILE_NAME, 'public_witness');
+const PROOF_PATH = path.join(__dirname, "..", INPUTS_FILE_NAME, 'proof');
 
 const readPublicWitness = () => {
   const publicInputsBytes = fs.readFileSync(PUBLIC_INPUT_PATH);
