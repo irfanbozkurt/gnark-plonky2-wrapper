@@ -24,6 +24,8 @@ import (
 	"github.com/succinctlabs/gnark-plonky2-verifier/verifier"
 )
 
+const SetupFileName = "srs_setup"
+
 const PkFileName = "proving.key"
 const VkFileName = "verifying.key"
 
@@ -105,13 +107,12 @@ func main() {
 func performSetupForPlonk(r1cs constraint.ConstraintSystem) {
 	fmt.Println("Reading the real setup")
 
-	fileName := "srs_setup"
-	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		trusted_setup.DownloadAndSaveAztecIgnitionSrs(174, fileName)
+	if _, err := os.Stat(SetupFileName); os.IsNotExist(err) {
+		trusted_setup.DownloadAndSaveAztecIgnitionSrs(174, SetupFileName)
 	}
 
 	var srs kzg.SRS = kzg.NewSRS(ecc.BN254)
-	fSRS, err := os.Open(fileName)
+	fSRS, err := os.Open(SetupFileName)
 	if _, err = srs.ReadFrom(fSRS); err != nil {
 		panic(err)
 	}
