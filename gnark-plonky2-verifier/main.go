@@ -18,6 +18,7 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/frontend/cs/scs"
 	"github.com/consensys/gnark/profile"
+	"github.com/succinctlabs/gnark-plonky2-verifier/trusted_setup"
 	"github.com/succinctlabs/gnark-plonky2-verifier/types"
 	"github.com/succinctlabs/gnark-plonky2-verifier/variables"
 	"github.com/succinctlabs/gnark-plonky2-verifier/verifier"
@@ -102,16 +103,17 @@ func main() {
 func performSetupForPlonk(r1cs constraint.ConstraintSystem) {
 	fmt.Println("Reading the real setup")
 
-	fSRS, err := os.Open("srs_setup")
-	if err != nil {
-		panic(err)
+	fileName := "srs_setup"
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		trusted_setup.DownloadAndSaveAztecIgnitionSrs(174, fileName)
 	}
+
 	var srs kzg.SRS = kzg.NewSRS(ecc.BN254)
-	_, err = srs.ReadFrom(fSRS)
-	fSRS.Close()
-	if err != nil {
+	fSRS, err := os.Open(fileName)
+	if _, err = srs.ReadFrom(fSRS); err != nil {
 		panic(err)
 	}
+	fSRS.Close()
 
 	fmt.Println("Generating pk, vk from the setup")
 
