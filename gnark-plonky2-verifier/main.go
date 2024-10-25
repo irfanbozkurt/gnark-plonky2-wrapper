@@ -25,7 +25,7 @@ import (
 
 const PkFileName = "proving.key"
 const VkFileName = "verifying.key"
-const VerifierContractFileName = "contracts/PlonkVerifier.sol"
+const VerifierContractFileName = "PlonkVerifier.sol"
 const ProofFileName = "proof"
 const PublicWitnessFileName = "public_witness"
 const fpSize = 4 * 8
@@ -83,7 +83,8 @@ func main() {
 	}
 
 	if *proofSystem == "plonk" {
-		// pk, vk := performSetupForPlonk(r1cs)
+		performSetupForPlonk(r1cs)
+
 		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("input" + "/proof_with_public_inputs.json"))
 		assignment := verifier.VerifierCircuit{
 			Proof:                   proofWithPis.Proof,
