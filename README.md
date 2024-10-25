@@ -24,7 +24,7 @@ This tool is also used to extract the verifier contract. Enabling `performSetupF
 
 [solidity-plonk-verifier](solidity-plonk-verifier/)
 
-Accpets the output of gnark-plonky2-verifier as input, and outputs a boolean for successful on-chain verification. 
+Accpets the output of gnark-plonky2-verifier as input, deploys the PlonkVerifier contract, and outputs a boolean for successful on-chain verification. 
 
 - Place the verifying contract in [contracts](solidity-plonk-verifier/contracts/) folder. 
 - Place the following in [input](solidity-plonk-verifier/input/) folder: 
