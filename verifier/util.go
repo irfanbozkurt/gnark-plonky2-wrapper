@@ -7,7 +7,7 @@ import (
 	"github.com/succinctlabs/gnark-plonky2-verifier/variables"
 )
 
-type ExampleVerifierCircuit struct {
+type VerifierCircuit struct {
 	PublicInputs            []gl.Variable                     `gnark:",public"`
 	Proof                   variables.Proof                   `gnark:"-"`
 	VerifierOnlyCircuitData variables.VerifierOnlyCircuitData `gnark:"-"`
@@ -16,7 +16,7 @@ type ExampleVerifierCircuit struct {
 	CommonCircuitData types.CommonCircuitData
 }
 
-func (c *ExampleVerifierCircuit) Define(api frontend.API) error {
+func (c *VerifierCircuit) Define(api frontend.API) error {
 	verifierChip := NewVerifierChip(api, c.CommonCircuitData)
 	verifierChip.Verify(c.Proof, c.PublicInputs, c.VerifierOnlyCircuitData)
 
