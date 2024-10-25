@@ -16,6 +16,7 @@
 
 gnark-ed25519
 gnark.pprof
+witness
 public_witness
 proof
 

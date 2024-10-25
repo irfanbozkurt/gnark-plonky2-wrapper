@@ -39,10 +39,10 @@ func main() {
 
 	fmt.Printf("Running benchmark for circuit with proof system %s\n", *proofSystem)
 
-	commonCircuitData := types.ReadCommonCircuitData("prover_input" + "/common_circuit_data.json")
+	commonCircuitData := types.ReadCommonCircuitData("input" + "/common_circuit_data.json")
 
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("prover_input" + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("prover_input" + "/verifier_only_circuit_data.json"))
+	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("input" + "/proof_with_public_inputs.json"))
+	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("input" + "/verifier_only_circuit_data.json"))
 
 	circuit := verifier.VerifierCircuit{
 		Proof:                   proofWithPis.Proof,
@@ -84,11 +84,11 @@ func main() {
 
 	if *proofSystem == "plonk" {
 		// pk, vk := performSetupForPlonk(r1cs)
-		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("prover_input" + "/proof_with_public_inputs.json"))
+		proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("input" + "/proof_with_public_inputs.json"))
 		assignment := verifier.VerifierCircuit{
 			Proof:                   proofWithPis.Proof,
 			PublicInputs:            proofWithPis.PublicInputs,
-			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("prover_input" + "/verifier_only_circuit_data.json")),
+			VerifierOnlyCircuitData: variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("input" + "/verifier_only_circuit_data.json")),
 		}
 		readKeysFromFileAndProve(r1cs, assignment)
 	} else if *proofSystem == "groth16" {
@@ -215,8 +215,8 @@ func groth16Proof(r1cs constraint.ConstraintSystem, dummy bool, saveArtifacts bo
 	var vk groth16.VerifyingKey
 	var err error
 
-	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("prover_input" + "/proof_with_public_inputs.json"))
-	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("prover_input" + "/verifier_only_circuit_data.json"))
+	proofWithPis := variables.DeserializeProofWithPublicInputs(types.ReadProofWithPublicInputs("input" + "/proof_with_public_inputs.json"))
+	verifierOnlyCircuitData := variables.DeserializeVerifierOnlyCircuitData(types.ReadVerifierOnlyCircuitData("input" + "/verifier_only_circuit_data.json"))
 	assignment := verifier.VerifierCircuit{
 		Proof:                   proofWithPis.Proof,
 		PublicInputs:            proofWithPis.PublicInputs,
